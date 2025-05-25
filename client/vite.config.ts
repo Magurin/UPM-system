@@ -1,33 +1,18 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import svgr from "vite-plugin-svgr";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    svgr({
-      svgrOptions: {
-        icon: true,
-      },
-    }),
-  ],
-  resolve: {
-    alias: {
-      "@": "/src",
-    },
-  },
-server: {
+  plugins: [react()],
+  server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', 
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'ws://localhost:5000',
+        target: 'http://localhost:5000',
         ws: true,
       },
     },
   },
-});
-
-
+})

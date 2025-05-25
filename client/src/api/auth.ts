@@ -1,6 +1,9 @@
 import axios, { InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
 
-const api = axios.create({ baseURL: '/api' });
+const api = axios.create({
+  baseURL: '/api',             
+  withCredentials: false,      
+});
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token');
@@ -25,11 +28,19 @@ export function registerPilot(data: {
   phone: string;
   password: string;
 }) {
-  return api.post('/auth/register', data).then(r => r.data);
+  return api.post<{ token: string; }>('/auth/register', data)
+    .then(r => {
+      localStorage.setItem('token', r.data.token);
+      return r.data;
+    });
 }
 
 export function loginPilot(loginId: string, password: string) {
-  return api.post('/auth/login', { loginId, password }).then(r => r.data);
+  return api.post<{ token: string; }>('/auth/login', { loginId, password })
+    .then(r => {
+      localStorage.setItem('token', r.data.token);
+      return r.data;
+    });
 }
 
 export function getProfile() {

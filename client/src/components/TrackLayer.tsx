@@ -1,46 +1,73 @@
-import { useContext, useEffect, useRef } from "react";
-import { MapContext } from "./MapContext";
-import { createTelemetrySocket } from "../api/telemetrySocket";
-import maplibregl from "maplibre-gl";
+import { useContext, useEffect } from 'react'
+import maplibregl from 'maplibre-gl'
+// подтягиваем правильные интерфейсы из geojson-пакета
+import type { Feature, FeatureCollection, LineString } from 'geojson'
+import { MapContext } from './MapContext'
+import { listFlightRequests, FlightRequestDto } from '../api/flightRequests'
 
-export function TrackLayer() {
-  const map = useContext(MapContext);
-  const coordsRef = useRef<[number, number][]>([]);
+export default function TrackLayer() {
+  const map = useContext(MapContext)
 
   useEffect(() => {
-    if (!map) return;
+    if (!map) return
 
-    // Инициализируем пустой источник и слой
-    map.addSource("track", {
-      type: "geojson",
-      data: {
-        type: "Feature" as const,
-        geometry: { type: "LineString" as const, coordinates: [] },
-        properties: {},
-      },
-    });
-    map.addLayer({
-      id: "track-line",
-      type: "line",
-      source: "track",
-      paint: { "line-color": "#0066ff", "line-width": 3 },
-    });
+    const addTracks = async () => {
+      try {
+        // забираем заявки
+        const reqs: FlightRequestDto[] = await listFlightRequests()
 
-    // Подписываемся на телеметрию
-    const socket = createTelemetrySocket(pt => {
-      coordsRef.current.push([pt.lon, pt.lat]);
-      const src = map.getSource("track") as maplibregl.GeoJSONSource;
-      src.setData({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: coordsRef.current },
-        properties: {},
-      });
-    });
+        // строим массив Feature<LineString
+        const features: Feature<
+          LineString,
+          { id: number; status: FlightRequestDto['status'] }
+        >[] = reqs.map(r => ({
+          type: 'Feature',
+          properties: { id: r.id, status: r.status },
+          geometry: r.route as LineString,
+        }))
 
-    return () => {
-      socket.disconnect();
-    };
-  }, [map]);
+        // упаковываем в FeatureCollection<LineString
+        const geojson: FeatureCollection<
+          LineString,
+          { id: number; status: FlightRequestDto['status'] }
+        > = {
+          type: 'FeatureCollection',
+          features,
+        }
 
-  return null;
+        const srcId = 'tracks'
+
+        // если source уже есть — просто обновляем данные
+        if (map.getSource(srcId)) {
+          ;(map.getSource(srcId) as maplibregl.GeoJSONSource).setData(geojson)
+        } else {
+          // иначе создаём его сразу вместе со слоем
+          map.addSource(srcId, {
+            type: 'geojson',
+            data: geojson,
+          })
+          map.addLayer({
+            id: 'tracks-line',
+            source: srcId,
+            type: 'line',
+            paint: {
+              'line-color': '#0077ff',
+              'line-width': 3,
+            },
+          })
+        }
+      } catch (err) {
+        console.error('❌ TrackLayer failed:', err)
+      }
+    }
+
+    // ждём, пока стиль загрузится, и только потом добавляем треки
+    if (map.isStyleLoaded()) {
+      addTracks()
+    } else {
+      map.once('load', addTracks)
+    }
+  }, [map])
+
+  return null
 }

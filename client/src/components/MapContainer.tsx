@@ -2,13 +2,17 @@ import React, { useRef, useState, useEffect } from "react";
 import maplibregl from "maplibre-gl";
 import { MapContext } from "./MapContext";
 import { MapBarRight } from "./MapBarRight";
+import ZonesLayer from "./ZonesLayer";
+import TrackLayer from "./TrackLayer";
+import LiveDronesLayer from "./LiveDronesLayer";
+import CoordinatesControl from "./CoordinatesControl";
 import "../index.css";
 
-interface Props {
+interface MapContainerProps {
   children?: React.ReactNode;
 }
 
-export function MapContainer({ children }: Props) {
+export function MapContainer({ children }: MapContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
 
@@ -23,9 +27,8 @@ export function MapContainer({ children }: Props) {
       zoom: 10,
     });
 
-    mapInstance.on("load", () => {
-      setMap(mapInstance);
-    });
+    setMap(mapInstance);
+    mapInstance.addControl(new maplibregl.NavigationControl(), "top-left");
 
     return () => {
       mapInstance.remove();
@@ -35,11 +38,12 @@ export function MapContainer({ children }: Props) {
   return (
     <div className="map-wrapper">
       <div ref={containerRef} className="map-container" />
-      <MapContext.Provider value={map}>
-        {/* Панель справа поверх карты */}
+     <MapContext.Provider value={map}>
         <MapBarRight />
-        {/* Остальные дочерние слои (ZonesLayer, TrackLayer, CoordinatesControl и т.д.) */}
-        {children}
+        <ZonesLayer />
+        <TrackLayer />
+        <LiveDronesLayer />     
+        <CoordinatesControl />
       </MapContext.Provider>
     </div>
   );

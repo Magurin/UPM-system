@@ -1,4 +1,3 @@
-// src/entities/Drone.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -33,9 +32,16 @@ export class Drone {
   @JoinColumn({ name: 'pilot_id' })
   pilot!: Pilot;
 
-  // ← сюда добавляем связь «один Drone — много FlightRequest»
   @OneToMany(() => FlightRequest, fr => fr.drone)
   flightRequests!: FlightRequest[];
+
+  @Column({
+    type: 'geometry',
+    spatialFeatureType: 'Point',
+    srid: 4326,
+    nullable: true,
+  })
+  pos?: string; // или GeoJSON, в зависимости от вашей конфигурации
 
   @CreateDateColumn({ name: 'created_at' })
   created_at!: Date;

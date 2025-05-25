@@ -1,16 +1,28 @@
-import { Router } from 'express';
-import { wrap } from '../utils/wrap';
-import { ZoneController } from '../controllers/zone.controller';
-import { authMiddleware } from '../middleware/auth';
+import { Router } from "express";
+import { AppDataSource } from "../config/data-source";
+import { Zone } from "../entities/Zone";
 
 const router = Router();
 
-// публичные
-router.get('/',    wrap(ZoneController.list));
-router.get('/:id', wrap(ZoneController.getById));
+router.get("/", async (_, res) => {
+  const zones = await AppDataSource
+    .getRepository(Zone)
+    .createQueryBuilder("z")
+    .select([
+      "z.id   AS id",
+      "z.name AS name",
+      "ST_AsGeoJSON(z.geom)::json AS geom"
+    ])
+    .getRawMany();
 
-// защищённые
-router.post('/',      authMiddleware, wrap(ZoneController.create));
-router.delete('/:id', authMiddleware, wrap(ZoneController.remove));
+  res.json({
+    type: "FeatureCollection",
+    features: zones.map(z => ({
+      type: "Feature",
+      properties: { id: z.id, name: z.name },
+      geometry:   z.geom
+    }))
+  });
+});
 
 export default router;

@@ -45,7 +45,7 @@ html, body, #root {
   left: 0;
   width: 100px;
   height: 100vh;
-  background-color: #8d8d8d;
+  background-color: #f1f1f1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -337,4 +337,12 @@ html, body, #root {
 .map-bar__bottom {
   width: 100%;
   margin-bottom: 8px;
+}
+.drone-marker {
+  width: 28px;
+  height: 28px;
+  background: url("./assets/drone_icon.svg") center/contain no-repeat;
+  pointer-events: auto;   
+  cursor: pointer;        
+  transform: translate(-50%, -50%);
 }

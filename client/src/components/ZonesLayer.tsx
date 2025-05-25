@@ -1,25 +1,43 @@
 import { useContext, useEffect } from "react";
+import maplibregl from "maplibre-gl";
 import { MapContext } from "./MapContext";
-import { fetchZones } from "../api/fetchZones";
 
-export function ZonesLayer() {
+export default function ZonesLayer() {
   const map = useContext(MapContext);
 
   useEffect(() => {
     if (!map) return;
-    fetchZones().then(zones => {
-      const features = zones.map(z => ({
-        type: "Feature" as const,
-        geometry: z.geom,
-        properties: { name: z.name },
-      }));
-      map.addSource("zones", {
-        type: "geojson",
-        data: { type: "FeatureCollection" as const, features },
-      });
-      map.addLayer({ id: "zones-fill", type: "fill", source: "zones", paint: { "fill-color": "#f00", "fill-opacity": 0.2 } });
-      map.addLayer({ id: "zones-border", type: "line", source: "zones", paint: { "line-color": "#f00", "line-width": 2 } });
-    });
+    const src = "zones";
+
+    const mount = async () => {
+      const data = await fetch("/api/zones").then((r) => r.json());
+      if (map.getSource(src)) {
+        (map.getSource(src) as maplibregl.GeoJSONSource).setData(data);
+      } else {
+        map.addSource(src, { type: "geojson", data });
+        map.addLayer({
+          id: "zones-fill",
+          source: src,
+          type: "fill",
+          paint: { "fill-color": "#e60000", "fill-opacity": 0.25 },
+        });
+        map.addLayer({
+          id: "zones-line",
+          source: src,
+          type: "line",
+          paint: { "line-color": "#e60000", "line-width": 2 },
+        });
+      }
+    };
+
+    // на initial load
+    map.isStyleLoaded() ? mount() : map.once("load", mount);
+    // и после каждой смены стиля
+    map.on("styledata", mount);
+
+    return () => {
+      map.off("styledata", mount);
+    };
   }, [map]);
 
   return null;
