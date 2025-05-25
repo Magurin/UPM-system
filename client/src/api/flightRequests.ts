@@ -10,7 +10,7 @@ export interface FlightRequestInput {
   takeoffTime: string;          // HH:mm
   landingTime: string;          // HH:mm
 
-  geomType:    "circle" | "polygon" | "line" | "kml";
+  geomType:    "corridor" | "circle" | "polygon";
   route:       GeoJSON.GeoJSON; // LineString / Polygon / etc.
 
   maxAltitude: number;

@@ -10,6 +10,6 @@
     "esModuleInterop": true,     
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src", "../server/pgNotify.ts"],   
+  "include": ["src", "../server/pgNotify.ts", "../server/seedZone.ts"],   
   "exclude": ["node_modules", "build"]  
 }

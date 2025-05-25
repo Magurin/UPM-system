@@ -34,8 +34,8 @@ export function FlightRequestsDrawer({
   const [endDate, setEndDate] = useState("");
   const [takeoffTime, setTakeoffTime] = useState("");
   const [landingTime, setLandingTime] = useState("");
-  const [geomType, setGeomType] =
-    useState<"circle" | "polygon" | "line" | "kml">("line");
+  // теперь только три типа
+  const [geomType, setGeomType] = useState<"corridor" | "circle" | "polygon">("corridor");
   const [routeJson, setRouteJson] = useState("");
   const [maxAlt, setMaxAlt] = useState("");
   const [minAlt, setMinAlt] = useState("0");
@@ -64,7 +64,7 @@ export function FlightRequestsDrawer({
     try {
       const fresh = await listDrones();
       setDrones(fresh);
-    } catch {/* ignore */}
+    } catch { /* ignore */ }
   };
 
   /* ─────── «нарисовать маршрут» – заглушка ───────────────── */
@@ -77,7 +77,8 @@ export function FlightRequestsDrawer({
       ],
     };
     setRouteJson(JSON.stringify(demo));
-    setGeomType("line");
+    // демо-режим теперь считается «коридором»
+    setGeomType("corridor");
     alert(
       "Маршрут сгенерирован демо-данными.\nПозже заменим на рисование на карте."
     );
@@ -86,7 +87,6 @@ export function FlightRequestsDrawer({
   /* ─────── создание заявки ───────────────────────────────── */
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
-
     if (
       droneId === "" ||
       !name ||
@@ -134,7 +134,7 @@ export function FlightRequestsDrawer({
       setEndDate("");
       setTakeoffTime("");
       setLandingTime("");
-      setGeomType("line");
+      setGeomType("corridor");
       setRouteJson("");
       setMaxAlt("");
       setMinAlt("0");
@@ -172,8 +172,7 @@ export function FlightRequestsDrawer({
                 >
                   <div className="leading-tight">
                     <p className="text-sm font-medium">
-                      {r.name || "Без названия"} – {r.drone.brand}{" "}
-                      {r.drone.model}
+                      {r.name || "Без названия"} – {r.drone.brand} {r.drone.model}
                     </p>
                     <p className="text-xs text-gray-600">
                       {r.startDate} → {r.endDate} • {r.status}
@@ -269,22 +268,27 @@ export function FlightRequestsDrawer({
             />
           </div>
 
-          {/* Тип геометрии – кнопки-иконки */}
+          {/* Тип геометрии – кнопки-иконки (3 варианта) */}
           <div className="flex items-center gap-3 text-sm mt-2">
             <span>Тип маршрута:</span>
-            {(["circle", "polygon", "line", "kml"] as const).map((t) => (
+            {(["corridor", "circle", "polygon"] as const).map((t) => (
               <button
-                type="button"
                 key={t}
+                type="button"
                 aria-label={t}
                 onClick={() => setGeomType(t)}
-                className={`w-9 h-9 rounded flex items-center justify-center border
-                  ${
-                    geomType === t
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                  }`}
+                className={`w-9 h-9 rounded flex items-center justify-center border ${
+                  geomType === t
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 hover:bg-gray-200"
+                }`}
               >
+                {t === "corridor" && (
+                  <svg viewBox="0 0 24 24" className="w-5 h-5">
+                    <rect x="4" y="6" width="16" height="4" />
+                    <rect x="4" y="14" width="16" height="4" />
+                  </svg>
+                )}
                 {t === "circle" && (
                   <svg viewBox="0 0 24 24" className="w-5 h-5">
                     <circle cx="12" cy="12" r="8" />
@@ -293,23 +297,6 @@ export function FlightRequestsDrawer({
                 {t === "polygon" && (
                   <svg viewBox="0 0 24 24" className="w-5 h-5">
                     <polygon points="5,5 19,5 17,19 7,19" />
-                  </svg>
-                )}
-                {t === "line" && (
-                  <svg viewBox="0 0 24 24" className="w-5 h-5">
-                    <line
-                      x1="4"
-                      y1="20"
-                      x2="20"
-                      y2="4"
-                      strokeWidth="2"
-                      stroke="currentColor"
-                    />
-                  </svg>
-                )}
-                {t === "kml" && (
-                  <svg viewBox="0 0 24 24" className="w-5 h-5">
-                    <rect x="6" y="4" width="12" height="16" />
                   </svg>
                 )}
               </button>
@@ -381,7 +368,7 @@ export function FlightRequestsDrawer({
           </label>
 
           {/* Кнопки */}
-          <div style={{ display: "flex", gap: "12px" }}>
+          <div className="flex gap-3">
             <button
               type="submit"
               className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1 text-sm rounded"

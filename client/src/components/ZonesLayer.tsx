@@ -1,43 +1,53 @@
+// src/components/ZonesLayer.tsx
 import { useContext, useEffect } from "react";
 import maplibregl from "maplibre-gl";
-import { MapContext } from "./MapContext";
+import { MapContext }    from "./MapContext";
+import type { FeatureCollection } from "geojson";
 
 export default function ZonesLayer() {
   const map = useContext(MapContext);
 
   useEffect(() => {
     if (!map) return;
-    const src = "zones";
+    const srcId       = "zones";
+    const fillLayerId = "zones-fill";
+    const lineLayerId = "zones-line";
 
     const mount = async () => {
-      const data = await fetch("/api/zones").then((r) => r.json());
-      if (map.getSource(src)) {
-        (map.getSource(src) as maplibregl.GeoJSONSource).setData(data);
+      // 1) Забираем GeoJSON из БД
+      const data = (await fetch("/api/zones").then(r => r.json())) as FeatureCollection;
+
+      // 2) Если источник уже есть — обновляем
+      if (map.getSource(srcId)) {
+        (map.getSource(srcId) as maplibregl.GeoJSONSource).setData(data);
       } else {
-        map.addSource(src, { type: "geojson", data });
+        // иначе создаём source + 2 layer’а
+        map.addSource(srcId, { type: "geojson", data });
         map.addLayer({
-          id: "zones-fill",
-          source: src,
+          id: fillLayerId,
+          source: srcId,
           type: "fill",
           paint: { "fill-color": "#e60000", "fill-opacity": 0.25 },
         });
         map.addLayer({
-          id: "zones-line",
-          source: src,
+          id: lineLayerId,
+          source: srcId,
           type: "line",
           paint: { "line-color": "#e60000", "line-width": 2 },
         });
       }
     };
 
-    // на initial load
-    map.isStyleLoaded() ? mount() : map.once("load", mount);
-    // и после каждой смены стиля
-    map.on("styledata", mount);
+    // Ждём, пока стиль загрузится
+    if (map.isStyleLoaded()) {
+      mount();
+    } else {
+      map.once("load", mount);
+    }
 
-    return () => {
-      map.off("styledata", mount);
-    };
+    // При смене стиля надо заново отрисовать
+    map.on("styledata", mount);
+    return () => { map.off("styledata", mount); };
   }, [map]);
 
   return null;
